@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:uber/AllScreens/login_screen.dart';
 import 'package:uber/AllScreens/main_screen.dart';
+import 'package:uber/AllWidgets/progress_dialog.dart';
 import 'package:uber/main.dart';
 import 'package:uber/utils/util.dart';
 
@@ -140,29 +141,34 @@ class RegisterScreen extends StatelessWidget {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
 
   void registerNewUser(BuildContext context) async {
-    print("순서 테스트 000000");
-    final User firebaseUser = (await _firebaseAuth
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return ProgressDialog(message: "회원가입 진행중");
+        });
+
+    final UserCredential firebaseUser = (await _firebaseAuth
         .createUserWithEmailAndPassword(
             email: emailTextEditingController.text,
             password: passwordTextEditingController.text)
         .catchError((errMsg) {
+      Navigator.pop(context);
       displayToastMessage("Error : $errMsg");
-    })) as User;
+    }));
 
-    print("순서 테스트 111111");
-    if (firebaseUser != null) {
+    if (firebaseUser != null && firebaseUser.user != null) {
       Map userDataMap = {
         "name": nameTextEditingController.text.trim(),
         "email": emailTextEditingController.text.trim(),
         "phone": phoneTextEditingController.text.trim(),
       };
-      print("순서 테스트 222222 : $userDataMap");
-      usersRef.child(firebaseUser.uid).set(userDataMap);
+      usersRef.child(firebaseUser.user!.uid).set(userDataMap);
       displayToastMessage("회원가입을 축하드립니다");
-      Navigator.pushNamedAndRemoveUntil(context, MainScreen.idScreen, (route) => false);
-      print("순서 테스트 333333");
+      Navigator.pushNamedAndRemoveUntil(
+          context, MainScreen.idScreen, (route) => false);
     } else {
-      print("순서 테스트 444444");
+      Navigator.pop(context);
       displayToastMessage("New user account has not been created");
     }
   }
