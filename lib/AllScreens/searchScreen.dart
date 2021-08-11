@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:sprintf/sprintf.dart';
+import 'package:uber/AllScreens/register_screen.dart';
+import 'package:uber/AllWidgets/divider.dart';
+import 'package:uber/AllWidgets/progress_dialog.dart';
 import 'package:uber/Assistants/requestAssistant.dart';
 import 'package:uber/DataHandler/appData.dart';
+import 'package:uber/Model/PlacePredictions.dart';
+import 'package:uber/Model/address.dart';
 import 'package:uber/configMaps.dart';
 
 class SearchScreen extends StatefulWidget {
@@ -14,6 +20,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   TextEditingController pickUpTextEditingController = TextEditingController();
   TextEditingController dropOffTextEditingController = TextEditingController();
+  List<PlacePredictions> placePredictionList = [];
 
   @override
   Widget build(BuildContext context) {
@@ -111,19 +118,18 @@ class _SearchScreenState extends State<SearchScreen> {
                           child: Padding(
                             padding: EdgeInsets.all(3),
                             child: TextField(
-                              onChanged: (keyword) {
-                                findPlace(keyword);
-                              },
-                              controller: dropOffTextEditingController,
-                              decoration: InputDecoration(
-                                  hintText: "Where to? ",
-                                  fillColor: Colors.grey[400],
-                                  filled: true,
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.only(
-                                      left: 11, top: 8, bottom: 8)),
-                            ),
+                                onChanged: (keyword) {
+                                  findPlace(keyword);
+                                },
+                                controller: dropOffTextEditingController,
+                                decoration: InputDecoration(
+                                    hintText: "Where to? ",
+                                    fillColor: Colors.grey[400],
+                                    filled: true,
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.only(
+                                        left: 11, top: 8, bottom: 8))),
                           ),
                         ),
                       )
@@ -133,6 +139,22 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
             ),
           ),
+          SizedBox(height: 10),
+          (placePredictionList.length > 0)
+              ? Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+                  child: ListView.separated(
+                    itemBuilder: (context, index) {
+                      return PredictionTile(
+                          placePredictions: placePredictionList[index]);
+                    },
+                    separatorBuilder: (context, index) => DividerWidget(),
+                    itemCount: placePredictionList.length,
+                    shrinkWrap: true,
+                    physics: ClampingScrollPhysics(),
+                  ),
+                )
+              : Container()
         ],
       ),
     );
@@ -141,12 +163,104 @@ class _SearchScreenState extends State<SearchScreen> {
   void findPlace(String placeName) async {
     if (placeName.length > 1) {
       String autoCompleteUrl =
-          "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=${ConfigMaps().mapKey}&sessiontoken=1234567890&components=country:KR";
+          "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=${ConfigMaps.mapKey}&sessiontoken=1234567890&components=country:KR";
       var res = await RequestAssistant.getRequest(autoCompleteUrl);
       if (res == "fail") {
         return;
       } else {
+        if (res["status"] == "OK") {
+          var predictions = res["predictions"];
+          var placeList = (predictions as List)
+              .map((e) => PlacePredictions.fromJson(e))
+              .toList();
+          setState(() {
+            placePredictionList = placeList;
+          });
+        }
         print("autoComplete : $res");
+      }
+    }
+  }
+}
+
+class PredictionTile extends StatelessWidget {
+  final PlacePredictions placePredictions;
+
+  const PredictionTile({Key? key, required this.placePredictions})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton(
+      style: ButtonStyle(
+        padding: MaterialStateProperty.all<EdgeInsets>(EdgeInsets.all(0)),
+      ),
+      onPressed: () {
+        getPlaceAddressDetails(placePredictions.place_id.toString(), context);
+      },
+      child: Container(
+        child: Column(
+          children: [
+            SizedBox(width: 10),
+            Row(
+              children: [
+                Icon(Icons.add_location),
+                SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 8),
+                      Text(placePredictions.main_text.toString(),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 16)),
+                      SizedBox(height: 2),
+                      Text(placePredictions.secondary_text.toString(),
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      SizedBox(height: 8),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: 10),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void getPlaceAddressDetails(String placeId, context) async {
+    showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) =>
+            ProgressDialog(message: "도착지를 검색중입니다"));
+
+    var url = sprintf(ConfigMaps().placeDetailurl, [placeId]);
+
+    var res = await RequestAssistant.getRequest(url);
+
+    Navigator.pop(context);
+
+    if (res == "fail") {
+      return;
+    } else {
+      if (res["status"] == "OK") {
+        Address address = Address();
+        address.placeName = res["result"]["name"];
+        address.placeId = placeId;
+        address.latitude = res["result"]["geometry"]["location"]["lat"];
+        address.longitude = res["result"]["geometry"]["location"]["lng"];
+
+        Provider.of<AppData>(context, listen: false)
+            .updateDropOffLocationAddress(address);
+
+        displayToastMessage(
+            "도착지 이름 : ${address.placeName}, latitude : ${address.latitude}, longitude : ${address.longitude},");
+      } else {
+        return;
       }
     }
   }

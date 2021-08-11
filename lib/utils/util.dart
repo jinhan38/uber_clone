@@ -11,4 +11,9 @@ class Util{
       ),
     );
   }
+
+  static focusOut(BuildContext context){
+    FocusScopeNode currentFocus = FocusScope.of(context);
+    currentFocus.unfocus();
+  }
 }
