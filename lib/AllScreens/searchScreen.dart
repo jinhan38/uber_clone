@@ -239,6 +239,7 @@ class PredictionTile extends StatelessWidget {
             ProgressDialog(message: "도착지를 검색중입니다"));
 
     var url = sprintf(ConfigMaps().placeDetailurl, [placeId]);
+    print("도착지 확인 url : $url");
 
     var res = await RequestAssistant.getRequest(url);
 
@@ -257,8 +258,10 @@ class PredictionTile extends StatelessWidget {
         Provider.of<AppData>(context, listen: false)
             .updateDropOffLocationAddress(address);
 
-        displayToastMessage(
-            "도착지 이름 : ${address.placeName}, latitude : ${address.latitude}, longitude : ${address.longitude},");
+        print("도착지 이름 : ${address.placeName}");
+        Navigator.pop(context, 'obtainDirection');
+        // displayToastMessage(
+        //     "도착지 이름 : ${address.placeName}, latitude : ${address.latitude}, longitude : ${address.longitude},");
       } else {
         return;
       }

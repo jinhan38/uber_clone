@@ -7,6 +7,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:uber/AllScreens/searchScreen.dart';
 import 'package:uber/AllWidgets/divider.dart';
+import 'package:uber/AllWidgets/progress_dialog.dart';
 import 'package:uber/Assistants/assistantMethods.dart';
 import 'package:uber/DataHandler/appData.dart';
 
@@ -30,6 +31,7 @@ class _MainScreenState extends State<MainScreen> {
   void locatePosition() async {
     currentPosition = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
+    print("현재 위치 : ${currentPosition.latitude}, ${ currentPosition.longitude}");
     LatLng latLatPosition =
         LatLng(currentPosition.latitude, currentPosition.longitude);
     CameraPosition cameraPosition =
@@ -286,10 +288,15 @@ class _MainScreenState extends State<MainScreen> {
                           style: TextStyle(
                               fontSize: 20, fontFamily: "Brand-Bold")),
                       SizedBox(height: 20),
-                      
                       GestureDetector(
-                        onTap: (){
-                          Navigator.push(context, MaterialPageRoute(builder: (context) => SearchScreen()));
+                        onTap: () async {
+                          final res = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => SearchScreen()));
+                          if (res == "obtainDirection") {
+                            await getPlaceDirection();
+                          }
                         },
                         child: Container(
                           decoration: BoxDecoration(
@@ -316,7 +323,7 @@ class _MainScreenState extends State<MainScreen> {
                         ),
                       ),
                       SizedBox(height: 24),
-                      Row(                            
+                      Row(
                         children: [
                           Icon(Icons.home, color: Colors.grey),
                           SizedBox(width: 12),
@@ -325,7 +332,9 @@ class _MainScreenState extends State<MainScreen> {
                             children: [
                               Text(
                                   Provider.of<AppData>(context)
-                                              .userPickUpLocation.placeName != null
+                                              .userPickUpLocation
+                                              .placeName !=
+                                          null
                                       ? Provider.of<AppData>(context)
                                           .userPickUpLocation
                                           .placeName!
@@ -377,5 +386,25 @@ class _MainScreenState extends State<MainScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> getPlaceDirection() async {
+    var initialPos =
+        Provider.of<AppData>(context, listen: false).userPickUpLocation;
+    var finalPos = Provider.of<AppData>(context, listen: false).dropOffLocation;
+
+    var pickUpLatLng = LatLng(initialPos.latitude!, initialPos.longitude!);
+    var dropOffLatLng = LatLng(finalPos.latitude!, finalPos.longitude!);
+
+    showDialog(
+        context: context,
+        builder: (BuildContext context) => ProgressDialog(message: "로딩중"));
+
+    var details = await AssistantMethods.obtainPlaceDirectionDetails(
+        pickUpLatLng, dropOffLatLng);
+
+    Navigator.pop(context);
+
+    print("상세 확인 : $details");
   }
 }
