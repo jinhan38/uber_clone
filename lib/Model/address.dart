@@ -1,0 +1,24 @@
+class Address {
+
+
+  String? placeFormattedAddress = "";
+  String? placeName = "";
+  String? placeId = "";
+  double? latitude = 0;
+  double? longitude = 0;
+
+  Address(
+      {this.placeFormattedAddress,
+      this.placeName,
+      this.placeId,
+      this.latitude,
+      this.longitude});
+
+
+  // Address(
+  //     {String placeFormattedAddress = "",
+  //     String placeName = "",
+  //     String placeId = "",
+  //     double latitude = 0.0,
+  //     double longitude = 0.0});
+}
