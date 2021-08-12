@@ -42,6 +42,9 @@ dependencies:
   http: ^0.13.3
   sprintf: ^6.0.0
   provider: ^5.0.0
+  flutter_polyline_points: ^1.0.0
+  font_awesome_flutter: ^9.1.0
+  animated_text_kit: ^4.2.1
 
 
 dev_dependencies:

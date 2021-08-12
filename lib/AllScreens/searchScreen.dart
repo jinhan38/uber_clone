@@ -163,7 +163,7 @@ class _SearchScreenState extends State<SearchScreen> {
   void findPlace(String placeName) async {
     if (placeName.length > 1) {
       String autoCompleteUrl =
-          "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=${ConfigMaps.mapKey}&sessiontoken=1234567890&components=country:KR";
+          "https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$placeName&key=$mapKey&sessiontoken=1234567890&components=country:KR";
       var res = await RequestAssistant.getRequest(autoCompleteUrl);
       if (res == "fail") {
         return;
@@ -238,7 +238,7 @@ class PredictionTile extends StatelessWidget {
         builder: (BuildContext context) =>
             ProgressDialog(message: "도착지를 검색중입니다"));
 
-    var url = sprintf(ConfigMaps().placeDetailurl, [placeId]);
+    var url = sprintf(placeDetailurl, [placeId]);
     print("도착지 확인 url : $url");
 
     var res = await RequestAssistant.getRequest(url);
